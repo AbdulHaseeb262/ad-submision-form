@@ -269,7 +269,10 @@ const AdForm = () => {
       }
       setApiMessage("Advertisement submitted successfully!");
     } catch (error) {
-      setApiMessage("Submission failed. Please try again.");
+    setApiMessage({
+        styles: { textColor: "#00ff88" },
+        message: "Submission failed. Please try again.",
+      });
       console.error("Submission error:", error);
     }
   };
