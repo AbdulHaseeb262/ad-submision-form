@@ -238,7 +238,7 @@ const AdForm = () => {
     if (!validateForm()) return;
 
     // Generate an auto-generated ID if not already set
-    /* const generateId = () => new Date().getTime().toString();
+    const generateId = () => new Date().getTime().toString();
 
     const key =
       currentForm === FORM_TYPES.REAL_ESTATE
@@ -276,7 +276,7 @@ const AdForm = () => {
       console.error("Submission error:", error);
     }
   };
- */
+ 
   // ---------- Dynamic Form Render Functions with Updated Floating Label Structure ----------
 
   // General Ad Form
