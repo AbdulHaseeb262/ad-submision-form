@@ -182,50 +182,56 @@ const AdForm = () => {
         ? "realEstate"
         : currentForm === FORM_TYPES.CAR_SALES
         ? "carSales"
-        : currentForm.toLowerCase().replace(" ", "");
-    const currentData = formData[key];
+        : currentForm.toLowerCase().replace(/\s/g, ""); // Fixes space issue
+
+    const currentData = formData[key] || {}; // Prevent undefined errors
     let newErrors = {};
 
     // Add validations for each form type as needed
     if (currentForm === FORM_TYPES.GENERAL) {
-      if (!currentData.title) newErrors.title = "Title is required";
-      if (!currentData.description)
+      if (!currentData.title?.trim()) newErrors.title = "Title is required";
+      if (!currentData.description?.trim())
         newErrors.description = "Description is required";
     }
     if (currentForm === FORM_TYPES.CONTACT) {
-      if (!currentData.name) newErrors.name = "Name is required";
-      if (!currentData.email) newErrors.email = "Email is required";
+      if (!currentData.name?.trim()) newErrors.name = "Name is required";
+      if (!currentData.email?.trim()) newErrors.email = "Email is required";
     }
     if (currentForm === FORM_TYPES.LOCATIONS) {
-      if (!currentData.branch) newErrors.branch = "Branch is required";
-      if (!currentData.address) newErrors.address = "Address is required";
+      if (!currentData.branch?.trim()) newErrors.branch = "Branch is required";
+      if (!currentData.address?.trim())
+        newErrors.address = "Address is required";
     }
     if (currentForm === FORM_TYPES.REAL_ESTATE) {
-      if (!currentData.listing_type)
+      if (!currentData.listing_type?.trim())
         newErrors.listing_type = "Listing type is required";
-      if (!currentData.address) newErrors.address = "Address is required";
+      if (!currentData.address?.trim())
+        newErrors.address = "Address is required";
     }
     if (currentForm === FORM_TYPES.SPECIALS) {
-      if (!currentData.department)
+      if (!currentData.department?.trim())
         newErrors.department = "Department is required";
     }
     if (currentForm === FORM_TYPES.PRODUCTS) {
-      if (!currentData.name) newErrors.name = "Product name is required";
-      if (!currentData.description)
+      if (!currentData.name?.trim())
+        newErrors.name = "Product name is required";
+      if (!currentData.description?.trim())
         newErrors.description = "Description is required";
     }
     if (currentForm === FORM_TYPES.CAR_SALES) {
-      if (!currentData.make) newErrors.make = "Make is required";
-      if (!currentData.model) newErrors.model = "Model is required";
+      if (!currentData.make?.trim()) newErrors.make = "Make is required";
+      if (!currentData.model?.trim()) newErrors.model = "Model is required";
     }
     if (currentForm === FORM_TYPES.JOBS) {
-      if (!currentData.job_type) newErrors.job_type = "Job type is required";
-      if (!currentData.company_name)
+      if (!currentData.job_type?.trim())
+        newErrors.job_type = "Job type is required";
+      if (!currentData.company_name?.trim())
         newErrors.company_name = "Company name is required";
     }
     if (currentForm === FORM_TYPES.EVENTS) {
-      if (!currentData.name) newErrors.name = "Event name is required";
-      if (!currentData.dates) newErrors.dates = "Event dates are required";
+      if (!currentData.name?.trim()) newErrors.name = "Event name is required";
+      if (!currentData.dates?.trim())
+        newErrors.dates = "Event dates are required";
     }
 
     setErrors(newErrors);
@@ -236,16 +242,17 @@ const AdForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-   const payload = {
-  ...formData,
-  generalad: {
-    ...formData.generalad,
-    image_url: imageUrls, 
-  },
-};
+      const payload = {
+        ...formData,
+        generalad: {
+          ...formData.generalad,
+          image_url: imageUrls,
+        },
+      };
 
-        setApiMessage("Submitting...");
-      console.log('Submission Payload:', JSON.stringify(payload, null, 2));}
+      setApiMessage("Submitting...");
+      console.log("Submission Payload:", JSON.stringify(payload, null, 2));
+    }
     /*  e.preventDefault();
     if (!validateForm()) return;
 
@@ -287,7 +294,7 @@ const AdForm = () => {
       });
       console.error("Submission error:", errors);
     } */
-    }
+  };
 
   // ---------- Dynamic Form Render Functions with Updated Floating Label Structure ----------
 
