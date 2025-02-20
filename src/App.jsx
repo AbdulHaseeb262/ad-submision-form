@@ -170,7 +170,6 @@ const AdForm = () => {
 
   // Handle image upload: simulate upload and generate preview URLs
   const handleImageUpload = (e) => {
-     e.preventDefault();
     const files = e.target.files;
     const urls = Array.from(files).map((file) => URL.createObjectURL(file));
     setImageUrls((prev) => [...prev, ...urls]);
@@ -236,16 +235,17 @@ const AdForm = () => {
   // Handle form submission: validate, create JSON payload, and simulate an API call
   const handleSubmit = async (e) => {
     e.preventDefault();
-     if (validateForm()) {
+    if (validateForm()) {
       const payload = {
         ...formData,
         image_url: imageUrls
       };
 
-      console.log('Submission Payload:', JSON.stringify(payload, null, 2));
-   /*  if (!validateForm()) return;
+      console.log('Submission Payload:', JSON.stringify(payload, null, 2));}
+    /*  e.preventDefault();
+    if (!validateForm()) return;
 
-    // Generate an auto-generated ID if not already set
+    
     const generateId = () => new Date().getTime().toString();
 
     const key =
@@ -267,7 +267,7 @@ const AdForm = () => {
 
     setApiMessage("Submitting...");
     try {
-      const response = await fetch("https://api.example.com/ads", {
+      const response = await fetch("/ https://api.example.com/ads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: jsonPayload,
@@ -277,14 +277,14 @@ const AdForm = () => {
       }
       setApiMessage("Advertisement submitted successfully!");
     } catch (error) {
-    setApiMessage({
+      setApiMessage({
         styles: { textColor: "#00ff88" },
         message: "Submission failed. Please try again.",
       });
-      console.error("Submission error:", error);
+      console.error("Submission error:", errors);
     } */
-  };
- 
+    }
+
   // ---------- Dynamic Form Render Functions with Updated Floating Label Structure ----------
 
   // General Ad Form
