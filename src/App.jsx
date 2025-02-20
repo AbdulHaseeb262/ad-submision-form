@@ -1,1180 +1,1067 @@
-// App.js
-// This React application implements a backend-ready advertisement submission form.
-// It dynamically renders different form fields based on the selected form type,
-// validates required fields, handles image uploads (with preview via object URLs),
-// and simulates an API call on submission.
-//
-// To run this project:
-// 1. npx create-react-app ad-submission-form
-// 2. Replace src/App.js and src/index.css with the code below.
-// 3. Run "npm install" and "npm start" in your project directory.
+import React, { useState, useEffect } from "react";
 
-import React, { useState } from "react";
-import "./index.css";
+/*
+  Ad Submission Form
+  ------------------
+  This component renders a dynamic ad submission form that builds a JSON payload matching
+  the unified ad data model. It supports:
+  • Dynamic ad type selection (including “Add New Type”)
+  • Input fields for title, description, price, dates (with MM-DD-YYYY format)
+  • Dynamic arrays for keywords, contact phone numbers/social media, and locations
+  • Specialized item detail forms for Real Estate, Car Sales, Job Placement, and Event ads
+  • Image upload simulation (using URL.createObjectURL)
+  • Inline error validation with the provided CSS styling
+  • On submit, the payload is logged and an API call is simulated using fetch.
+*/
 
-// Define the available form types
-const FORM_TYPES = {
-  GENERAL: "General Ad",
-  CONTACT: "Contact",
-  LOCATIONS: "Locations",
-  REAL_ESTATE: "Real Estate",
-  SPECIALS: "Specials",
-  PRODUCTS: "Products",
-  CAR_SALES: "Car Sales",
-  JOBS: "Jobs",
-  EVENTS: "Events",
-};
+function App() {
+  // State for backend-provided ad types (simulate API call)
+  const [adTypes, setAdTypes] = useState([]);
+  const [selectedAdType, setSelectedAdType] = useState("");
+  const [customAdType, setCustomAdType] = useState("");
+  const [showCustomTypeInput, setShowCustomTypeInput] = useState(false);
 
-// Initial form state for each form type following the provided schema
-const initialFormState = {
-  general: {
-    id: "", // auto-generated on submission if needed
+  // Main form state based on unified JSON structure.
+  const [formData, setFormData] = useState({
+    id: "",
     ad_type: "",
-    custom_ad_type: "",
     title: "",
     description: "",
     price: "",
-    date_valid_from: "",
-    date_valid_to: "",
-    image_url: [],
-    industry: "",
-    category: "",
-    sub_category: "",
-    sub_sub_category: "",
-    keywords: "",
+    date_valid: { from: "", to: "" },
+    keywords: [],
+    contact: {
+      type: "",
+      name: "",
+      phone_numbers: [""],
+      email: "",
+      website: "",
+      social_media: [""],
+    },
+    locations: [{ branch: "", address: "", phone_number: "" }],
+    items: [],
     notes: "",
-  },
-  contact: {
-    id: "",
-    ad_id: "",
-    type: "",
-    name: "",
-    phone_numbers: "",
-    email: "",
-    website: "",
-    social_media: "",
-  },
-  locations: {
-    id: "",
-    ad_id: "",
-    branch: "",
-    address: "",
-    phone_number: "",
-  },
-  realEstate: {
-    id: "",
-    ad_id: "",
+    image_url: [],
+  });
+
+  // Error state for inline validations
+  const [errors, setErrors] = useState({});
+
+  // States for dynamic "items" based on ad type
+  const [realEstateDetails, setRealEstateDetails] = useState({
+    title: "",
     listing_type: "",
     property_type: "",
-    status: "",
+    property_type_custom: "",
+    status: "Available", // always "Available" per instructions
     address: "",
     price: "",
-    square_footage: "",
-    lot_size: "",
-    bedrooms: "",
-    bathrooms: "",
-    floor_level: "",
-    furnished: "",
-    utilities_included: "",
-    customizable: "",
-    office_rooms: "",
-    parking_availability: "",
-    lease_term: "",
-    amenities: "",
-    condition: "",
     details: "",
     agents: "",
-    notes: "",
-  },
-  specials: {
-    id: "",
-    ad_id: "",
-    department: "",
-    product: "",
-    price: "",
-  },
-  products: {
-    id: "",
-    ad_id: "",
-    name: "",
-    description: "",
-    price: "",
-  },
-  carSales: {
-    id: "",
-    ad_id: "",
+  });
+
+  const [vehicleDetails, setVehicleDetails] = useState({
+    title: "",
     year: "",
     make: "",
     model: "",
+    trim: "",
     mileage: "",
     condition: "",
     price: "",
-  },
-  jobs: {
-    id: "",
-    ad_id: "",
+    notes: "",
+  });
+
+  const [jobDetails, setJobDetails] = useState({
     job_type: "",
+    title: "",
     company_name: "",
+    position: "",
     employment_type: "",
     schedule: "",
+    location: "",
     salary: "",
     application_method: "",
     application_details: "",
-    application_link: "",
     skills: "",
     experience: "",
-  },
-  events: {
-    id: "",
-    ad_id: "",
+    availability: "",
+    expected_pay: "",
+  });
+
+  const [eventDetails, setEventDetails] = useState({
+    title: "",
     name: "",
-    highlights: "",
-    dates: "",
-    location: "",
-  },
-};
+    dates: [{ date: "", time: "", location: "" }],
+    highlights: [""],
+    notes: "",
+  });
 
-const AdForm = () => {
-  // Current selected form type
-  const [currentForm, setCurrentForm] = useState(FORM_TYPES.GENERAL);
-  // Form data for all form types
-  const [formData, setFormData] = useState(initialFormState);
-  // For inline error messages on required fields
-  const [errors, setErrors] = useState({});
-  // For image URLs from file uploads (only applicable for General Ad)
-  const [imageUrls, setImageUrls] = useState([]);
-  // Message from simulated API call
-  const [apiMessage, setApiMessage] = useState("");
+  // Simulate fetching ad types from backend
+  useEffect(() => {
+    setTimeout(() => {
+      const types = [
+        "Company",
+        "Specials",
+        "Product",
+        "Service",
+        "Job Placement",
+        "Car Sales",
+        "General Item",
+        "Lost & Found",
+        "Event",
+        "Real Estate",
+        "Other",
+        "Add New Type",
+      ];
+      setAdTypes(types);
+    }, 500);
+  }, []);
 
-  // Handle input changes for the currently selected form type
-  const handleInputChange = (e) => {
+  // Generic change handler for top-level formData fields.
+  const handleChange = (e) => {
     const { name, value } = e.target;
+    // For nested date_valid fields (from/to)
+    if (name.includes("date_valid.")) {
+      const key = name.split(".")[1];
+      setFormData((prev) => ({
+        ...prev,
+        date_valid: { ...prev.date_valid, [key]: value },
+      }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
+  };
 
-    // Ensure the correct key format for multi-word form types
-    const key =
-      currentForm === FORM_TYPES.REAL_ESTATE
-        ? "realEstate"
-        : currentForm === FORM_TYPES.CAR_SALES
-        ? "carSales"
-        : currentForm.toLowerCase().replace(/\s/g, ""); // Fix: Removes all spaces
+  // Handle comma-separated keywords
+  const handleKeywordsChange = (e) => {
+    const value = e.target.value;
+    const keywords = value
+      .split(",")
+      .map((kw) => kw.trim())
+      .filter((kw) => kw);
+    setFormData((prev) => ({ ...prev, keywords }));
+  };
 
+  // Contact (object) change handlers
+  const handleContactChange = (e) => {
+    const { name, value } = e.target;
     setFormData((prev) => ({
       ...prev,
-      [key]: {
-        ...(prev[key] || {}), // Fix: Ensures `prev[key]` exists
-        [name]: value,
-      },
+      contact: { ...prev.contact, [name]: value },
     }));
-
-    // Remove the error if the field was previously invalid
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: null }));
-    }
   };
 
-  // Handle image upload: simulate upload and generate preview URLs
+  const handleContactArrayChange = (index, field, value) => {
+    const updatedArray = [...formData.contact[field]];
+    updatedArray[index] = value;
+    setFormData((prev) => ({
+      ...prev,
+      contact: { ...prev.contact, [field]: updatedArray },
+    }));
+  };
+
+  const addContactArrayField = (field) => {
+    setFormData((prev) => ({
+      ...prev,
+      contact: { ...prev.contact, [field]: [...prev.contact[field], ""] },
+    }));
+  };
+
+  // Locations change handlers
+  const handleLocationChange = (index, field, value) => {
+    const updatedLocations = [...formData.locations];
+    updatedLocations[index][field] = value;
+    setFormData((prev) => ({ ...prev, locations: updatedLocations }));
+  };
+
+  const addLocationField = () => {
+    setFormData((prev) => ({
+      ...prev,
+      locations: [
+        ...prev.locations,
+        { branch: "", address: "", phone_number: "" },
+      ],
+    }));
+  };
+
+  // Handle image upload (simulate URL creation)
   const handleImageUpload = (e) => {
-    const files = e.target.files;
-    const urls = Array.from(files).map((file) => URL.createObjectURL(file));
-    setImageUrls((prev) => [...prev, ...urls]);
+    const files = Array.from(e.target.files);
+    const urls = files.map((file) => URL.createObjectURL(file));
+    setFormData((prev) => ({
+      ...prev,
+      image_url: [...prev.image_url, ...urls],
+    }));
   };
 
-  // Validate required fields for the current form type
+  // Handlers for Real Estate details
+  const handleRealEstateChange = (e) => {
+    const { name, value } = e.target;
+    setRealEstateDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handlers for Vehicle details
+  const handleVehicleChange = (e) => {
+    const { name, value } = e.target;
+    setVehicleDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handlers for Job details
+  const handleJobChange = (e) => {
+    const { name, value } = e.target;
+    setJobDetails((prev) => ({ ...prev, [name]: value }));
+  };
+
+  // Handlers for Event details (including nested arrays)
+  const handleEventChange = (e) => {
+    const { name, value } = e.target;
+    if (name.startsWith("dates-")) {
+      // e.g. "dates-0-date", "dates-0-time", "dates-0-location"
+      const parts = name.split("-");
+      const idx = parseInt(parts[1], 10);
+      const field = parts[2];
+      const updatedDates = [...eventDetails.dates];
+      updatedDates[idx][field] = value;
+      setEventDetails((prev) => ({ ...prev, dates: updatedDates }));
+    } else if (name.startsWith("highlights-")) {
+      const parts = name.split("-");
+      const idx = parseInt(parts[1], 10);
+      const updatedHighlights = [...eventDetails.highlights];
+      updatedHighlights[idx] = value;
+      setEventDetails((prev) => ({ ...prev, highlights: updatedHighlights }));
+    } else {
+      setEventDetails((prev) => ({ ...prev, [name]: value }));
+    }
+  };
+
+  const addEventDate = () => {
+    setEventDetails((prev) => ({
+      ...prev,
+      dates: [...prev.dates, { date: "", time: "", location: "" }],
+    }));
+  };
+
+  const addEventHighlight = () => {
+    setEventDetails((prev) => ({
+      ...prev,
+      highlights: [...prev.highlights, ""],
+    }));
+  };
+
+  // Handle ad type selection from dropdown.
+  const handleAdTypeSelect = (e) => {
+    const value = e.target.value;
+    if (value === "Add New Type") {
+      setShowCustomTypeInput(true);
+      setSelectedAdType("");
+      setFormData((prev) => ({ ...prev, ad_type: "" }));
+    } else {
+      setShowCustomTypeInput(false);
+      setSelectedAdType(value);
+      setFormData((prev) => ({ ...prev, ad_type: value }));
+    }
+  };
+
+  // Validate required fields and date formats.
   const validateForm = () => {
-    const key =
-      currentForm === FORM_TYPES.REAL_ESTATE
-        ? "realEstate"
-        : currentForm === FORM_TYPES.CAR_SALES
-        ? "carSales"
-        : currentForm.toLowerCase().replace(/\s/g, ""); // Fixes space issue
-
-    const currentData = formData[key] || {}; // Prevent undefined errors
-    let newErrors = {};
-
-    // Add validations for each form type as needed
-    if (currentForm === FORM_TYPES.GENERAL) {
-      if (!currentData.title?.trim()) newErrors.title = "Title is required";
-      if (!currentData.description?.trim())
-        newErrors.description = "Description is required";
+    let tempErrors = {};
+    if (!formData.ad_type) {
+      tempErrors.ad_type = "Ad type is required.";
     }
-    if (currentForm === FORM_TYPES.CONTACT) {
-      if (!currentData.name?.trim()) newErrors.name = "Name is required";
-      if (!currentData.email?.trim()) newErrors.email = "Email is required";
+    if (!formData.title) {
+      tempErrors.title = "Title is required.";
     }
-    if (currentForm === FORM_TYPES.LOCATIONS) {
-      if (!currentData.branch?.trim()) newErrors.branch = "Branch is required";
-      if (!currentData.address?.trim())
-        newErrors.address = "Address is required";
+    if (!formData.description) {
+      tempErrors.description = "Description is required.";
     }
-    if (currentForm === FORM_TYPES.REAL_ESTATE) {
-      if (!currentData.listing_type?.trim())
-        newErrors.listing_type = "Listing type is required";
-      if (!currentData.address?.trim())
-        newErrors.address = "Address is required";
+    // Regex to match MM-DD-YYYY
+    const dateRegex = /^(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])-\d{4}$/;
+    if (formData.date_valid.from && !dateRegex.test(formData.date_valid.from)) {
+      tempErrors.date_valid_from = "Date (from) must be in MM-DD-YYYY format.";
     }
-    if (currentForm === FORM_TYPES.SPECIALS) {
-      if (!currentData.department?.trim())
-        newErrors.department = "Department is required";
+    if (formData.date_valid.to && !dateRegex.test(formData.date_valid.to)) {
+      tempErrors.date_valid_to = "Date (to) must be in MM-DD-YYYY format.";
     }
-    if (currentForm === FORM_TYPES.PRODUCTS) {
-      if (!currentData.name?.trim())
-        newErrors.name = "Product name is required";
-      if (!currentData.description?.trim())
-        newErrors.description = "Description is required";
-    }
-    if (currentForm === FORM_TYPES.CAR_SALES) {
-      if (!currentData.make?.trim()) newErrors.make = "Make is required";
-      if (!currentData.model?.trim()) newErrors.model = "Model is required";
-    }
-    if (currentForm === FORM_TYPES.JOBS) {
-      if (!currentData.job_type?.trim())
-        newErrors.job_type = "Job type is required";
-      if (!currentData.company_name?.trim())
-        newErrors.company_name = "Company name is required";
-    }
-    if (currentForm === FORM_TYPES.EVENTS) {
-      if (!currentData.name?.trim()) newErrors.name = "Event name is required";
-      if (!currentData.dates?.trim())
-        newErrors.dates = "Event dates are required";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    setErrors(tempErrors);
+    return Object.keys(tempErrors).length === 0;
   };
 
-  // Handle form submission: validate, create JSON payload, and simulate an API call
+  // On submission, create the final JSON payload and simulate an API call.
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validateForm()) {
-      const payload = {
-        ...formData,
-        generalad: {
-          ...formData.generalad,
-          image_url: imageUrls,
-        },
-      };
-
-      setApiMessage("Submitting...");
-      console.log("Submission Payload:", JSON.stringify(payload, null, 2));
-    }
-    /*  e.preventDefault();
     if (!validateForm()) return;
 
-    
-    const generateId = () => new Date().getTime().toString();
+    let finalPayload = {
+      ...formData,
+      // Generate a random id if none provided.
+      id: formData.id || Math.random().toString(36).substr(2, 9),
+    };
 
-    const key =
-      currentForm === FORM_TYPES.REAL_ESTATE
-        ? "realEstate"
-        : currentForm === FORM_TYPES.CAR_SALES
-        ? "carSales"
-        : currentForm.toLowerCase().replace(" ", "");
-
-    let payload = { ...formData };
-    if (!payload[key].id) {
-      payload[key].id = generateId();
+    // If a custom ad type is entered, use that value.
+    if (showCustomTypeInput && customAdType) {
+      finalPayload.ad_type = customAdType;
     }
-    if (currentForm === FORM_TYPES.GENERAL) {
-      payload.general.image_url = imageUrls;
-    }
-    const jsonPayload = JSON.stringify(payload[key], null, 2);
-    console.log("Submission Payload:", jsonPayload);
 
-    setApiMessage("Submitting...");
+    // Map specialized "items" based on selected ad type.
+    if (selectedAdType === "Real Estate") {
+      finalPayload.items = [
+        { type: "Property", ...realEstateDetails, status: "Available" },
+      ];
+    } else if (selectedAdType === "Car Sales") {
+      finalPayload.items = [{ type: "Vehicle", ...vehicleDetails }];
+    } else if (selectedAdType === "Job Placement") {
+      // Convert comma-separated skills into an array.
+      const skillsArray = jobDetails.skills
+        .split(",")
+        .map((skill) => skill.trim())
+        .filter((skill) => skill);
+      finalPayload.items = [
+        { type: "Job", ...jobDetails, skills: skillsArray },
+      ];
+    } else if (selectedAdType === "Event") {
+      finalPayload.items = [{ type: "Event", ...eventDetails }];
+    } else {
+      // For other ad types, items remain empty or you can extend as needed.
+      finalPayload.items = [];
+    }
+
+    console.log("Final JSON Payload:", JSON.stringify(finalPayload, null, 2));
+
+    // Simulate an API call to a placeholder URL.
     try {
-      const response = await fetch("/ https://api.example.com/ads", {
+      const response = await fetch("https://api.example.com/ads", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: jsonPayload,
+        body: JSON.stringify(finalPayload),
       });
-      if (!response.ok) {
-        throw new Error("Network response was not ok");
-      }
-      setApiMessage("Advertisement submitted successfully!");
+      const data = await response.json();
+      console.log("API Response:", data);
     } catch (error) {
-      setApiMessage({
-        styles: { textColor: "#00ff88" },
-        message: "Submission failed. Please try again.",
-      });
-      console.error("Submission error:", errors);
-    } */
-  };
-
-  // ---------- Dynamic Form Render Functions with Updated Floating Label Structure ----------
-
-  // General Ad Form
-  const renderGeneralForm = () => {
-    const data = formData.general;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <select
-            name="ad_type"
-            value={data.ad_type}
-            onChange={handleInputChange}
-          >
-            <option value="">Select Ad Type</option>
-            <option value="For Sale">For Sale</option>
-            <option value="For Rent">For Rent</option>
-            <option value="Other">Other</option>
-          </select>
-          <label>Ad Type</label>
-        </div>
-        {data.ad_type === "Other" && (
-          <div className="form-group">
-            <input
-              type="text"
-              name="custom_ad_type"
-              value={data.custom_ad_type}
-              placeholder=" "
-              onChange={handleInputChange}
-            />
-            <label>Custom Ad Type</label>
-          </div>
-        )}
-        <div className="form-group">
-          <input
-            type="text"
-            name="title"
-            value={data.title}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Title</label>
-          {errors.title && <div className="error">{errors.title}</div>}
-        </div>
-        <div className="form-group">
-          <textarea
-            name="description"
-            value={data.description}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Description</label>
-          {errors.description && (
-            <div className="error">{errors.description}</div>
-          )}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="price"
-            value={data.price}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Price</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="date"
-            name="date_valid_from"
-            value={data.date_valid_from}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Date Valid From</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="date"
-            name="date_valid_to"
-            value={data.date_valid_to}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Date Valid To</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="industry"
-            value={data.industry}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Industry</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="category"
-            value={data.category}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Category</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="sub_category"
-            value={data.sub_category}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Sub Category</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="sub_sub_category"
-            value={data.sub_sub_category}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Sub Sub Category</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="keywords"
-            value={data.keywords}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Keywords</label>
-        </div>
-        <div className="form-group">
-          <textarea
-            name="notes"
-            value={data.notes}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Notes</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Contact Form
-  const renderContactForm = () => {
-    const data = formData.contact;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="type"
-            value={data.type}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Type</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="name"
-            value={data.name}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Name</label>
-          {errors.name && <div className="error">{errors.name}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="phone_numbers"
-            value={data.phone_numbers}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Phone Numbers</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="email"
-            name="email"
-            value={data.email}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Email</label>
-          {errors.email && <div className="error">{errors.email}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="website"
-            value={data.website}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Website</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="social_media"
-            value={data.social_media}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Social Media</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Locations Form
-  const renderLocationsForm = () => {
-    const data = formData.locations;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="branch"
-            value={data.branch}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Branch</label>
-          {errors.branch && <div className="error">{errors.branch}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="address"
-            value={data.address}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Address</label>
-          {errors.address && <div className="error">{errors.address}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="phone_number"
-            value={data.phone_number}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Phone Number</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Real Estate Form
-  const renderRealEstateForm = () => {
-    const data = formData.realEstate;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="listing_type"
-            value={data.listing_type}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Listing Type</label>
-          {errors.listing_type && (
-            <div className="error">{errors.listing_type}</div>
-          )}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="property_type"
-            value={data.property_type}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Property Type</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="status"
-            value={data.status}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Status</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="address"
-            value={data.address}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Address</label>
-          {errors.address && <div className="error">{errors.address}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="price"
-            value={data.price}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Price</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="square_footage"
-            value={data.square_footage}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Square Footage</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="lot_size"
-            value={data.lot_size}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Lot Size</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="number"
-            name="bedrooms"
-            value={data.bedrooms}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Bedrooms</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="number"
-            name="bathrooms"
-            value={data.bathrooms}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Bathrooms</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="floor_level"
-            value={data.floor_level}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Floor Level</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="furnished"
-            value={data.furnished}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Furnished</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="utilities_included"
-            value={data.utilities_included}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Utilities Included</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="customizable"
-            value={data.customizable}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Customizable</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="office_rooms"
-            value={data.office_rooms}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Office Rooms</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="parking_availability"
-            value={data.parking_availability}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Parking Availability</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="lease_term"
-            value={data.lease_term}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Lease Term</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="amenities"
-            value={data.amenities}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Amenities</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="condition"
-            value={data.condition}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Condition</label>
-        </div>
-        <div className="form-group">
-          <textarea
-            name="details"
-            value={data.details}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Details</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="agents"
-            value={data.agents}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Agents</label>
-        </div>
-        <div className="form-group">
-          <textarea
-            name="notes"
-            value={data.notes}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Notes</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Specials Form
-  const renderSpecialsForm = () => {
-    const data = formData.specials;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="department"
-            value={data.department}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Department</label>
-          {errors.department && (
-            <div className="error">{errors.department}</div>
-          )}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="product"
-            value={data.product}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Product</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="price"
-            value={data.price}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Price</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Products Form
-  const renderProductsForm = () => {
-    const data = formData.products;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="name"
-            value={data.name}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Name</label>
-          {errors.name && <div className="error">{errors.name}</div>}
-        </div>
-        <div className="form-group">
-          <textarea
-            name="description"
-            value={data.description}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Description</label>
-          {errors.description && (
-            <div className="error">{errors.description}</div>
-          )}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="price"
-            value={data.price}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Price</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Car Sales Form
-  const renderCarSalesForm = () => {
-    const data = formData.carSales;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="year"
-            value={data.year}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Year</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="make"
-            value={data.make}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Make</label>
-          {errors.make && <div className="error">{errors.make}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="model"
-            value={data.model}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Model</label>
-          {errors.model && <div className="error">{errors.model}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="mileage"
-            value={data.mileage}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Mileage</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="condition"
-            value={data.condition}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Condition</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="price"
-            value={data.price}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Price</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Jobs Form
-  const renderJobsForm = () => {
-    const data = formData.jobs;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="job_type"
-            value={data.job_type}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Job Type</label>
-          {errors.job_type && <div className="error">{errors.job_type}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="company_name"
-            value={data.company_name}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Company Name</label>
-          {errors.company_name && (
-            <div className="error">{errors.company_name}</div>
-          )}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="employment_type"
-            value={data.employment_type}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Employment Type</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="schedule"
-            value={data.schedule}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Schedule</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="salary"
-            value={data.salary}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Salary</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="application_method"
-            value={data.application_method}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Application Method</label>
-        </div>
-        <div className="form-group">
-          <textarea
-            name="application_details"
-            value={data.application_details}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Application Details</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="application_link"
-            value={data.application_link}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Application Link</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="skills"
-            value={data.skills}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Skills</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="experience"
-            value={data.experience}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Experience</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Events Form
-  const renderEventsForm = () => {
-    const data = formData.events;
-    return (
-      <div className="form-section">
-        <div className="form-group">
-          <input
-            type="text"
-            name="name"
-            value={data.name}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Name</label>
-          {errors.name && <div className="error">{errors.name}</div>}
-        </div>
-        <div className="form-group">
-          <textarea
-            name="highlights"
-            value={data.highlights}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Highlights</label>
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="dates"
-            value={data.dates}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Dates</label>
-          {errors.dates && <div className="error">{errors.dates}</div>}
-        </div>
-        <div className="form-group">
-          <input
-            type="text"
-            name="location"
-            value={data.location}
-            placeholder=" "
-            onChange={handleInputChange}
-          />
-          <label>Location</label>
-        </div>
-      </div>
-    );
-  };
-
-  // Render the correct form fields based on the selected form type
-  const renderFormFields = () => {
-    switch (currentForm) {
-      case FORM_TYPES.GENERAL:
-        return renderGeneralForm();
-      case FORM_TYPES.CONTACT:
-        return renderContactForm();
-      case FORM_TYPES.LOCATIONS:
-        return renderLocationsForm();
-      case FORM_TYPES.REAL_ESTATE:
-        return renderRealEstateForm();
-      case FORM_TYPES.SPECIALS:
-        return renderSpecialsForm();
-      case FORM_TYPES.PRODUCTS:
-        return renderProductsForm();
-      case FORM_TYPES.CAR_SALES:
-        return renderCarSalesForm();
-      case FORM_TYPES.JOBS:
-        return renderJobsForm();
-      case FORM_TYPES.EVENTS:
-        return renderEventsForm();
-      default:
-        return null;
+      console.error("API Error:", error);
     }
   };
 
   return (
     <div className="app-container">
-      <h1>Advertisement Submission Form</h1>
       <div className="form-container">
+        <h1>Ad Submission Form</h1>
         <form onSubmit={handleSubmit}>
-          {/* Form Type Selection */}
+          {/* Ad Type Selection */}
           <div className="form-group">
             <select
-              value={currentForm}
-              onChange={(e) => {
-                setCurrentForm(e.target.value);
-                setApiMessage("");
-              }}
+              name="ad_type"
+              value={selectedAdType}
+              onChange={handleAdTypeSelect}
+              required
             >
-              {Object.values(FORM_TYPES).map((type) => (
-                <option key={type} value={type}>
+              <option value="">Select Ad Type</option>
+              {adTypes.map((type, idx) => (
+                <option key={idx} value={type}>
                   {type}
                 </option>
               ))}
             </select>
-            <label>Select Form Type</label>
+            <label>Ad Type</label>
+            {errors.ad_type && <div className="error">{errors.ad_type}</div>}
           </div>
-
-          {/* Render dynamic form fields */}
-          {renderFormFields()}
-
-          {/* Image Upload Section (for General Ad) */}
-          <div className="form-section">
-            <h3>Images</h3>
+          {showCustomTypeInput && (
+            <div className="form-group">
+              <input
+                type="text"
+                name="custom_ad_type"
+                value={customAdType}
+                onChange={(e) => setCustomAdType(e.target.value)}
+                placeholder="Enter custom ad type"
+                required
+              />
+              <label>Custom Ad Type</label>
+            </div>
+          )}
+          {/* Title */}
+          <div className="form-group">
             <input
-              type="file"
-              multiple
-              accept="image/*"
-              onChange={handleImageUpload}
+              type="text"
+              name="title"
+              value={formData.title}
+              onChange={handleChange}
+              placeholder=" "
+              required
             />
+            <label>Title</label>
+            {errors.title && <div className="error">{errors.title}</div>}
+          </div>
+          {/* Description */}
+          <div className="form-group">
+            <textarea
+              name="description"
+              value={formData.description}
+              onChange={handleChange}
+              placeholder=" "
+              required
+            />
+            <label>Description</label>
+            {errors.description && (
+              <div className="error">{errors.description}</div>
+            )}
+          </div>
+          {/* Price */}
+          <div className="form-group">
+            <input
+              type="text"
+              name="price"
+              value={formData.price}
+              onChange={handleChange}
+              placeholder=" "
+            />
+            <label>Price</label>
+          </div>
+          {/* Date Valid From */}
+          <div className="form-group">
+            <input
+              type="text"
+              name="date_valid.from"
+              value={formData.date_valid.from}
+              onChange={handleChange}
+              placeholder="MM-DD-YYYY"
+            />
+            <label>Date Valid From</label>
+            {errors.date_valid_from && (
+              <div className="error">{errors.date_valid_from}</div>
+            )}
+          </div>
+          {/* Date Valid To */}
+          <div className="form-group">
+            <input
+              type="text"
+              name="date_valid.to"
+              value={formData.date_valid.to}
+              onChange={handleChange}
+              placeholder="MM-DD-YYYY"
+            />
+            <label>Date Valid To</label>
+            {errors.date_valid_to && (
+              <div className="error">{errors.date_valid_to}</div>
+            )}
+          </div>
+          {/* Keywords */}
+          <div className="form-group">
+            <input
+              type="text"
+              name="keywords"
+              onChange={handleKeywordsChange}
+              placeholder="Comma separated keywords"
+            />
+            <label>Keywords</label>
+          </div>
+          {/* Contact Section */}
+          <h2 style={{ color: "#fff", marginBottom: "1rem" }}>
+            Contact Details
+          </h2>
+          {/* Contact Type */}
+          <div className="form-group">
+            <select
+              name="type"
+              value={formData.contact.type}
+              onChange={handleContactChange}
+              required
+            >
+              <option value="">Select Contact Type</option>
+              <option value="Person">Person</option>
+              <option value="Business">Business</option>
+            </select>
+            <label>Contact Type</label>
+          </div>
+          {/* Contact Name */}
+          <div className="form-group">
+            <input
+              type="text"
+              name="name"
+              value={formData.contact.name}
+              onChange={handleContactChange}
+              placeholder=" "
+              required
+            />
+            <label>Contact Name</label>
+          </div>
+          {/* Contact Phone Numbers */}
+          {formData.contact.phone_numbers.map((phone, idx) => (
+            <div className="form-group" key={idx}>
+              <input
+                type="text"
+                value={phone}
+                onChange={(e) =>
+                  handleContactArrayChange(idx, "phone_numbers", e.target.value)
+                }
+                placeholder="Phone Number"
+              />
+              <label>Phone Number</label>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addContactArrayField("phone_numbers")}
+          >
+            + Add Phone Number
+          </button>
+          {/* Contact Email */}
+          <div className="form-group">
+            <input
+              type="email"
+              name="email"
+              value={formData.contact.email}
+              onChange={handleContactChange}
+              placeholder=" "
+            />
+            <label>Email</label>
+          </div>
+          {/* Contact Website */}
+          <div className="form-group">
+            <input
+              type="text"
+              name="website"
+              value={formData.contact.website}
+              onChange={handleContactChange}
+              placeholder=" "
+            />
+            <label>Website</label>
+          </div>
+          {/* Contact Social Media */}
+          {formData.contact.social_media.map((social, idx) => (
+            <div className="form-group" key={idx}>
+              <input
+                type="text"
+                value={social}
+                onChange={(e) =>
+                  handleContactArrayChange(idx, "social_media", e.target.value)
+                }
+                placeholder="Social Media Link"
+              />
+              <label>Social Media</label>
+            </div>
+          ))}
+          <button
+            type="button"
+            onClick={() => addContactArrayField("social_media")}
+          >
+            + Add Social Media
+          </button>
+          {/* Locations Section */}
+          <h2 style={{ color: "#fff", marginBottom: "1rem" }}>Locations</h2>
+          {formData.locations.map((loc, idx) => (
+            <div
+              key={idx}
+              style={{
+                border: "1px solid rgba(255,255,255,0.2)",
+                padding: "1rem",
+                marginBottom: "1rem",
+              }}
+            >
+              <div className="form-group">
+                <input
+                  type="text"
+                  value={loc.branch}
+                  onChange={(e) =>
+                    handleLocationChange(idx, "branch", e.target.value)
+                  }
+                  placeholder=" "
+                />
+                <label>Branch</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  value={loc.address}
+                  onChange={(e) =>
+                    handleLocationChange(idx, "address", e.target.value)
+                  }
+                  placeholder=" "
+                />
+                <label>Address</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  value={loc.phone_number}
+                  onChange={(e) =>
+                    handleLocationChange(idx, "phone_number", e.target.value)
+                  }
+                  placeholder=" "
+                />
+                <label>Location Phone Number</label>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addLocationField}>
+            + Add Location
+          </button>
+          {/* Dynamic Items Section Based on Ad Type */}
+          {selectedAdType === "Real Estate" && (
+            <>
+              <h2 style={{ color: "#fff", marginBottom: "1rem" }}>
+                Real Estate Details
+              </h2>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="title"
+                  value={realEstateDetails.title}
+                  onChange={handleRealEstateChange}
+                  placeholder=" "
+                />
+                <label>Property Title</label>
+              </div>
+              <div className="form-group">
+                <select
+                  name="listing_type"
+                  value={realEstateDetails.listing_type}
+                  onChange={handleRealEstateChange}
+                >
+                  <option value="">Select Listing Type</option>
+                  <option value="For Sale">For Sale</option>
+                  <option value="For Rent">For Rent</option>
+                  <option value="Lease">Lease</option>
+                </select>
+                <label>Listing Type</label>
+              </div>
+              <div className="form-group">
+                <select
+                  name="property_type"
+                  value={realEstateDetails.property_type}
+                  onChange={handleRealEstateChange}
+                >
+                  <option value="">Select Property Type</option>
+                  <option value="House">House</option>
+                  <option value="Apartment">Apartment</option>
+                  <option value="Condo">Condo</option>
+                  <option value="Commercial">Commercial</option>
+                  <option value="Other">Other</option>
+                </select>
+                <label>Property Type</label>
+              </div>
+              {realEstateDetails.property_type === "Other" && (
+                <div className="form-group">
+                  <input
+                    type="text"
+                    name="property_type_custom"
+                    value={realEstateDetails.property_type_custom}
+                    onChange={handleRealEstateChange}
+                    placeholder=" "
+                  />
+                  <label>Custom Property Type</label>
+                </div>
+              )}
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="address"
+                  value={realEstateDetails.address}
+                  onChange={handleRealEstateChange}
+                  placeholder=" "
+                />
+                <label>Property Address</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="price"
+                  value={realEstateDetails.price}
+                  onChange={handleRealEstateChange}
+                  placeholder=" "
+                />
+                <label>Property Price</label>
+              </div>
+              <div className="form-group">
+                <textarea
+                  name="details"
+                  value={realEstateDetails.details}
+                  onChange={handleRealEstateChange}
+                  placeholder=" "
+                />
+                <label>Property Details</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="agents"
+                  value={realEstateDetails.agents}
+                  onChange={handleRealEstateChange}
+                  placeholder=" "
+                />
+                <label>Property Agents</label>
+              </div>
+            </>
+          )}
+          {selectedAdType === "Car Sales" && (
+            <>
+              <h2 style={{ color: "#fff", marginBottom: "1rem" }}>
+                Vehicle Details
+              </h2>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="title"
+                  value={vehicleDetails.title}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Vehicle Title</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="year"
+                  value={vehicleDetails.year}
+                  onChange={handleVehicleChange}
+                  placeholder="Year"
+                />
+                <label>Year</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="make"
+                  value={vehicleDetails.make}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Make</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="model"
+                  value={vehicleDetails.model}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Model</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="trim"
+                  value={vehicleDetails.trim}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Trim</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="mileage"
+                  value={vehicleDetails.mileage}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Mileage</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="condition"
+                  value={vehicleDetails.condition}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Condition</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="price"
+                  value={vehicleDetails.price}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Price</label>
+              </div>
+              <div className="form-group">
+                <textarea
+                  name="notes"
+                  value={vehicleDetails.notes}
+                  onChange={handleVehicleChange}
+                  placeholder=" "
+                />
+                <label>Notes</label>
+              </div>
+            </>
+          )}
+          {selectedAdType === "Job Placement" && (
+            <>
+              <h2 style={{ color: "#fff", marginBottom: "1rem" }}>
+                Job Placement Details
+              </h2>
+              <div className="form-group">
+                <select
+                  name="job_type"
+                  value={jobDetails.job_type}
+                  onChange={handleJobChange}
+                >
+                  <option value="">Select Job Type</option>
+                  <option value="Employer">Employer</option>
+                  <option value="Job Seeker">Job Seeker</option>
+                </select>
+                <label>Job Type</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="title"
+                  value={jobDetails.title}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Job Title</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="company_name"
+                  value={jobDetails.company_name}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Company Name</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="position"
+                  value={jobDetails.position}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Position</label>
+              </div>
+              <div className="form-group">
+                <select
+                  name="employment_type"
+                  value={jobDetails.employment_type}
+                  onChange={handleJobChange}
+                >
+                  <option value="">Select Employment Type</option>
+                  <option value="Full-Time">Full-Time</option>
+                  <option value="Part-Time">Part-Time</option>
+                  <option value="Contract">Contract</option>
+                  <option value="Internship">Internship</option>
+                </select>
+                <label>Employment Type</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="schedule"
+                  value={jobDetails.schedule}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Schedule</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="location"
+                  value={jobDetails.location}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Job Location</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="salary"
+                  value={jobDetails.salary}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Salary</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="application_method"
+                  value={jobDetails.application_method}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Application Method</label>
+              </div>
+              <div className="form-group">
+                <textarea
+                  name="application_details"
+                  value={jobDetails.application_details}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Application Details</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="skills"
+                  value={jobDetails.skills}
+                  onChange={handleJobChange}
+                  placeholder="Comma separated skills"
+                />
+                <label>Skills</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="experience"
+                  value={jobDetails.experience}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Experience</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="availability"
+                  value={jobDetails.availability}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Availability</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="expected_pay"
+                  value={jobDetails.expected_pay}
+                  onChange={handleJobChange}
+                  placeholder=" "
+                />
+                <label>Expected Pay</label>
+              </div>
+            </>
+          )}
+          {selectedAdType === "Event" && (
+            <>
+              <h2 style={{ color: "#fff", marginBottom: "1rem" }}>
+                Event Details
+              </h2>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="title"
+                  value={eventDetails.title}
+                  onChange={handleEventChange}
+                  placeholder=" "
+                />
+                <label>Event Title</label>
+              </div>
+              <div className="form-group">
+                <input
+                  type="text"
+                  name="name"
+                  value={eventDetails.name}
+                  onChange={handleEventChange}
+                  placeholder=" "
+                />
+                <label>Event Name</label>
+              </div>
+              {eventDetails.dates.map((d, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    border: "1px solid rgba(255,255,255,0.2)",
+                    padding: "1rem",
+                    marginBottom: "1rem",
+                  }}
+                >
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      name={`dates-${idx}-date`}
+                      value={d.date}
+                      onChange={handleEventChange}
+                      placeholder="MM-DD-YYYY"
+                    />
+                    <label>Event Date</label>
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      name={`dates-${idx}-time`}
+                      value={d.time}
+                      onChange={handleEventChange}
+                      placeholder="Time"
+                    />
+                    <label>Event Time</label>
+                  </div>
+                  <div className="form-group">
+                    <input
+                      type="text"
+                      name={`dates-${idx}-location`}
+                      value={d.location}
+                      onChange={handleEventChange}
+                      placeholder=" "
+                    />
+                    <label>Event Location</label>
+                  </div>
+                </div>
+              ))}
+              <button type="button" onClick={addEventDate}>
+                + Add Event Date
+              </button>
+              {eventDetails.highlights.map((h, idx) => (
+                <div className="form-group" key={idx}>
+                  <input
+                    type="text"
+                    name={`highlights-${idx}`}
+                    value={h}
+                    onChange={handleEventChange}
+                    placeholder="Highlight"
+                  />
+                  <label>Highlight</label>
+                </div>
+              ))}
+              <button type="button" onClick={addEventHighlight}>
+                + Add Event Highlight
+              </button>
+              <div className="form-group">
+                <textarea
+                  name="notes"
+                  value={eventDetails.notes}
+                  onChange={handleEventChange}
+                  placeholder=" "
+                />
+                <label>Event Notes</label>
+              </div>
+            </>
+          )}
+          {/* Image Upload */}
+          <div className="form-group">
+            <input type="file" multiple onChange={handleImageUpload} />
+            <label>Upload Images</label>
             <div className="image-preview">
-              {imageUrls.map((url) => (
-                <img key={url} src={url} alt="Upload preview" />
+              {formData.image_url.map((url, idx) => (
+                <img key={idx} src={url} alt={`preview-${idx}`} />
               ))}
             </div>
           </div>
-
-          {/* Submit Button */}
+          {/* Additional Notes */}
+          <div className="form-group">
+            <textarea
+              name="notes"
+              value={formData.notes}
+              onChange={handleChange}
+              placeholder=" "
+            />
+            <label>Additional Notes</label>
+          </div>
           <button type="submit" className="submit-button">
-            Submit Advertisement
+            Submit Ad
           </button>
-          {apiMessage && <p>{apiMessage}</p>}
         </form>
       </div>
     </div>
   );
-};
+}
 
-export default AdForm;
+export default App;
