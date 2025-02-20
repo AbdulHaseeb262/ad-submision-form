@@ -240,10 +240,7 @@ const AdForm = () => {
         ...formData,
         image_url: imageUrls
       };
-        setApiMessage({
-        styles: { textColor: "#00ff88" },
-        message: "Submitting...",
-      });
+        setApiMessage("Submitting...");
       console.log('Submission Payload:', JSON.stringify(payload, null, 2));}
     /*  e.preventDefault();
     if (!validateForm()) return;
