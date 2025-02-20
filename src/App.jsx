@@ -149,20 +149,24 @@ const AdForm = () => {
   // Handle input changes for the currently selected form type
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-    // Adjust key based on form type; note that for multi-word types we simplify the key
+
+    // Ensure the correct key format for multi-word form types
     const key =
       currentForm === FORM_TYPES.REAL_ESTATE
         ? "realEstate"
         : currentForm === FORM_TYPES.CAR_SALES
         ? "carSales"
-        : currentForm.toLowerCase().replace(" ", "");
+        : currentForm.toLowerCase().replace(/\s/g, ""); // Fix: Removes all spaces
+
     setFormData((prev) => ({
       ...prev,
       [key]: {
-        ...prev[key],
+        ...(prev[key] || {}), // Fix: Ensures `prev[key]` exists
         [name]: value,
       },
     }));
+
+    // Remove the error if the field was previously invalid
     if (errors[name]) {
       setErrors((prev) => ({ ...prev, [name]: null }));
     }
