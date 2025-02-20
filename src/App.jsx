@@ -236,10 +236,14 @@ const AdForm = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (validateForm()) {
-      const payload = {
-        ...formData,
-        image_url: imageUrls
-      };
+   const payload = {
+  ...formData,
+  generalad: {
+    ...formData.generalad,
+    image_url: imageUrls, 
+  },
+};
+
         setApiMessage("Submitting...");
       console.log('Submission Payload:', JSON.stringify(payload, null, 2));}
     /*  e.preventDefault();
