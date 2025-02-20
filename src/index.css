@@ -1,0 +1,289 @@
+/* App.css */
+:root {
+  --primary-gradient: linear-gradient(135deg, #00ff87 0%, #60efff 100%);
+  --background-gradient: linear-gradient(45deg, #0a0a12, #1a1a2f);
+  --glass-bg: rgba(255, 255, 255, 0.05);
+  --neon-accent: #00ff88;
+  --cyber-border: rgba(0, 255, 135, 0.3);
+  --error-red: #ff4d4d;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+  background: var(--background-gradient);
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+  line-height: 1.6;
+}
+
+.app-container {
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.app-container::before {
+  content: "";
+  position: absolute;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(
+      circle at 50% 50%,
+      rgba(96, 239, 255, 0.1) 0%,
+      transparent 20%
+    ),
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 3px,
+      rgba(96, 239, 255, 0.05) 3px,
+      rgba(96, 239, 255, 0.05) 6px
+    );
+  animation: grid-move 20s linear infinite;
+}
+
+@keyframes grid-move {
+  from {
+    transform: translate(-50%, -50%) rotate(0deg);
+  }
+  to {
+    transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+h1 {
+  color: #fff;
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+  text-shadow: 0 0 15px rgba(96, 239, 255, 0.5);
+}
+
+.form-container {
+  background: var(--glass-bg);
+  backdrop-filter: blur(16px);
+  border-radius: 16px;
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 700px;
+  position: relative;
+  border: 1px solid var(--cyber-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  transform-style: preserve-3d;
+  transition: transform 0.3s ease;
+}
+
+.form-container:hover {
+  transform: perspective(1000px) rotateX(1deg) rotateY(1deg)
+    translate3d(0, -2px, 10px);
+}
+
+/* Unified form group styling */
+.form-group {
+  margin-bottom: 2rem;
+  position: relative;
+}
+
+.form-group label {
+  position: absolute;
+  left: 1rem;
+  top: 1rem;
+  color: rgba(255, 255, 255, 0.6);
+  pointer-events: none;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1rem;
+  background: linear-gradient(
+    to bottom,
+    transparent 40%,
+    rgba(10, 10, 18, 0.8) 40%,
+    rgba(10, 10, 18, 0.8) 60%,
+    transparent 60%
+  );
+  padding: 0 0.5rem;
+  transform-origin: left center;
+  z-index: 1;
+}
+
+/* Unified input styling */
+.form-group input,
+.form-group textarea,
+.form-group select {
+  width: 100%;
+  padding: 1.8rem 1rem 0.8rem;
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  border-radius: 4px;
+  position: relative;
+  z-index: 2;
+}
+
+/* Floating label effect for all fields */
+.form-group input:focus ~ label,
+.form-group input:not(:placeholder-shown) ~ label,
+.form-group textarea:focus ~ label,
+.form-group textarea:not(:placeholder-shown) ~ label,
+.form-group select:focus ~ label,
+.form-group select:valid ~ label {
+  top: -1rem;
+  left: 0.8rem;
+  font-size: 0.75rem;
+  color: var(--neon-accent);
+  background: var(--background-gradient);
+  transform: scale(0.85);
+}
+
+/* Focus states */
+.form-group input:focus,
+.form-group textarea:focus,
+.form-group select:focus {
+  outline: none;
+  border-bottom-color: var(--neon-accent);
+  box-shadow: 0 4px 20px rgba(0, 255, 135, 0.1);
+  background: rgba(0, 0, 0, 0.5);
+}
+
+/* Placeholder handling */
+::placeholder {
+  color: transparent;
+}
+
+.form-group input:focus::placeholder,
+.form-group textarea:focus::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+  transition: color 0.3s 0.2s;
+}
+
+/* Select dropdown styling */
+.form-group select {
+  appearance: none;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23fff'%3e%3cpath d='M7 10l5 5 5-5z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+}
+
+/* Error message styling */
+.error {
+  color: var(--error-red);
+  font-size: 0.85rem;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  animation: error-pulse 0.5s ease;
+}
+
+@keyframes error-pulse {
+  0% {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.error::before {
+  content: "⚠";
+  display: inline-block;
+}
+
+/* Submit button styling */
+.submit-button {
+  background: var(--primary-gradient);
+  color: #0a0a12;
+  padding: 1.2rem 2rem;
+  border: none;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.submit-button::after {
+  content: "→";
+  position: absolute;
+  right: 1.5rem;
+  opacity: 0;
+  transition: all 0.3s ease;
+}
+
+.submit-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 255, 135, 0.3);
+}
+
+.submit-button:hover::after {
+  opacity: 1;
+  right: 1rem;
+}
+
+/* Validation checkmark */
+.form-group input:valid:not(:placeholder-shown),
+.form-group textarea:valid:not(:placeholder-shown),
+.form-group select:valid {
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%2300ff87'%3e%3cpath d='M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z'/%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 1rem center;
+  background-size: 1em;
+}
+
+/* Dynamic "Other" field animation */
+.form-group .form-group {
+  animation: slideIn 0.4s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.image-preview img {
+  max-width: 100px;
+  margin: 0.5rem;
+  border: 1px solid var(--cyber-border);
+  border-radius: 4px;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .app-container {
+    padding: 1rem;
+  }
+  .form-container {
+    padding: 1.5rem;
+  }
+  h1 {
+    font-size: 2rem;
+  }
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    padding: 1.5rem 1rem 0.7rem;
+  }
+}
