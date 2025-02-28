@@ -296,8 +296,9 @@ function DynamicAdForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const response = await fetch("http://localhost:8080/api/v1/ads/", {
+    const url = "http://143.198.10.36:8080";
+    // const url = "http://localhost:8080"
+    const response = await fetch(url + "/api/v1/ads/", {
       method: "POST",
       body: JSON.stringify(adData),
       headers: {
