@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 
 // Initial structure for the ad data.
 const initialAdData = {
@@ -229,7 +229,7 @@ function DynamicAdForm() {
 
   const handleLocationChange = (index, field, value) => {
     const newLocations = adData.locations.map((loc, i) =>
-      i === index ? { ...loc, [field]: value } : loc
+      i === index ? { ...loc, [field]: value } : loc,
     );
     setAdData({ ...adData, locations: newLocations });
   };
@@ -246,7 +246,7 @@ function DynamicAdForm() {
 
   const handleItemChange = (index, field, value) => {
     const newItems = adData.items.map((item, i) =>
-      i === index ? { ...item, [field]: value } : item
+      i === index ? { ...item, [field]: value } : item,
     );
     setAdData({ ...adData, items: newItems });
   };
@@ -255,7 +255,7 @@ function DynamicAdForm() {
     itemIndex,
     arrayField,
     arrayIndex,
-    value
+    value,
   ) => {
     const newItems = adData.items.map((item, i) => {
       if (i === itemIndex) {
@@ -296,8 +296,7 @@ function DynamicAdForm() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(JSON.stringify(adData, null, 2));
-    alert("Form submitted! Check the console for the output JSON.");
+    console.dir(adData, { depth: null });
   };
 
   return (
