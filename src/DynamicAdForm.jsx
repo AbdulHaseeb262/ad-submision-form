@@ -294,9 +294,19 @@ function DynamicAdForm() {
     }
   }, [adData.ad_type]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    console.dir(adData, { depth: null });
+
+    const response = await fetch("http://localhost:8080/api/v1/ads/", {
+      method: "POST",
+      body: JSON.stringify(adData),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    const result = await response.json();
+    console.log(result, { depth: null });
   };
 
   return (
